@@ -1,0 +1,27 @@
+services:
+  pqc_api:
+    hostname: "pqc-api.lab.local"
+    minimum_tls_version: "TLSv1.3"
+    pqc_required: true
+    allowed_key_exchange_groups:
+      - "X25519MLKEM768"
+    allow_classical_fallback: false
+    max_handshake_duration_ms: 2000
+    max_handshakes_per_source_per_minute: 120
+    max_failed_handshakes_per_source_per_minute: 20
+    key_share_bounds:
+      X25519MLKEM768:
+        min_bytes: 1216
+        max_bytes: 1216
+
+  classical_api:
+    hostname: "classical-api.lab.local"
+    minimum_tls_version: "TLSv1.2"
+    pqc_required: false
+    allowed_key_exchange_groups:
+      - "x25519"
+      - "secp256r1"
+    allow_classical_fallback: true
+    max_handshake_duration_ms: 2000
+    max_handshakes_per_source_per_minute: 120
+    max_failed_handshakes_per_source_per_minute: 20

@@ -1,0 +1,51 @@
+{
+  "macro_f1": 1.0,
+  "weighted_f1": 1.0,
+  "per_class": {
+    "benign_classical": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 3.0
+    },
+    "benign_hybrid_pqc": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 7.0
+    },
+    "downgrade_violation": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 1.0
+    },
+    "handshake_exhaustion": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 5.0
+    },
+    "malformed_handshake": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 9.0
+    },
+    "unknown_anomaly": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 5.0
+    }
+  },
+  "pr_auc_ovr": {
+    "benign_classical": 1.0,
+    "benign_hybrid_pqc": 0.9999999999999998,
+    "downgrade_violation": 1.0,
+    "handshake_exhaustion": 1.0,
+    "malformed_handshake": 1.0000000000000002,
+    "unknown_anomaly": 1.0
+  },
+  "false_positive_rate_benign_hybrid_pqc": 0.0
+}

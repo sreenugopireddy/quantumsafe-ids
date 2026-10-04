@@ -1,0 +1,51 @@
+{
+  "macro_f1": 0.9292929292929294,
+  "weighted_f1": 0.9707070707070706,
+  "per_class": {
+    "benign_classical": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 6.0
+    },
+    "benign_hybrid_pqc": {
+      "precision": 1.0,
+      "recall": 0.8333333333333334,
+      "f1": 0.9090909090909091,
+      "support": 6.0
+    },
+    "downgrade_violation": {
+      "precision": 0.5,
+      "recall": 1.0,
+      "f1": 0.6666666666666666,
+      "support": 1.0
+    },
+    "handshake_exhaustion": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 9.0
+    },
+    "malformed_handshake": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 3.0
+    },
+    "unknown_anomaly": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 5.0
+    }
+  },
+  "pr_auc_ovr": {
+    "benign_classical": 1.0,
+    "benign_hybrid_pqc": 1.0,
+    "downgrade_violation": 1.0,
+    "handshake_exhaustion": 1.0000000000000002,
+    "malformed_handshake": 1.0,
+    "unknown_anomaly": 1.0
+  },
+  "false_positive_rate_benign_hybrid_pqc": 0.0
+}

@@ -1,0 +1,20 @@
+worker_processes 1;
+events { worker_connections 1024; }
+
+http {
+  server {
+    listen ${NGINX_PORT} ssl;
+    ssl_certificate     /etc/nginx/certs/server.crt;
+    ssl_certificate_key /etc/nginx/certs/server.key;
+
+    ssl_protocols TLSv1.3;
+    # Classical-only: no PQC/hybrid groups offered, so this server is a
+    # trustworthy source of benign_classical (label 0) traffic.
+    ssl_ecdh_curve X25519:prime256v1;
+
+    location / {
+      return 200 "quantumsafe-ids classical TLS lab endpoint\n";
+      add_header Content-Type text/plain;
+    }
+  }
+}

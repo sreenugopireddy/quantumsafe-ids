@@ -1,0 +1,137 @@
+name: quantumsafe-ids
+
+networks:
+  labnet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${LAB_NETWORK_SUBNET:-172.28.0.0/24}
+
+services:
+
+  tls-classical:
+    build:
+      context: ./docker/tls-classical
+      args:
+        TLS_CLASSICAL_IMAGE: ${TLS_CLASSICAL_IMAGE:-nginx:1.27-alpine}
+    container_name: tls-classical
+    environment:
+      TLS_CLASSICAL_PORT: ${TLS_CLASSICAL_PORT:-8443}
+      TLS_CLASSICAL_CERT_DAYS: ${TLS_CLASSICAL_CERT_DAYS:-365}
+    networks: [labnet]
+    ports:
+      - "${TLS_CLASSICAL_PORT:-8443}:${TLS_CLASSICAL_PORT:-8443}"
+    healthcheck:
+      test: ["CMD", "sh", "-c", "echo | openssl s_client -connect 127.0.0.1:${TLS_CLASSICAL_PORT:-8443} -tls1_3 2>/dev/null | grep -q 'Verify return code'"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  capture-classical:
+    build: { context: ./docker/capture }
+    container_name: capture-classical
+    network_mode: "service:tls-classical"
+    depends_on:
+      tls-classical: { condition: service_healthy }
+    cap_add: [NET_RAW, NET_ADMIN]
+    environment:
+      CAPTURE_TARGET_NAME: classical
+      CAPTURE_TARGET_PORT: ${TLS_CLASSICAL_PORT:-8443}
+      CAPTURE_ROTATE_SECONDS: ${CAPTURE_ROTATE_SECONDS:-300}
+      CAPTURE_SNAPLEN: ${CAPTURE_SNAPLEN:-262144}
+      CAPTURE_OUT_DIR: /captures
+    volumes:
+      - ./data/raw/pcap/classical:/captures
+    healthcheck:
+      test: ["CMD", "sh", "-c", "find /captures -name '*.pcap' -newermt '-2 minutes' | grep -q ."]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  tls-pqc:
+    build:
+      context: ./docker/tls-pqc
+      args:
+        PQC_BASE_IMAGE: ${PQC_BASE_IMAGE:-nginx:1.27-alpine}
+    container_name: tls-pqc
+    environment:
+      PQC_TLS_PORT: ${PQC_TLS_PORT:-8444}
+      PQC_ENABLED: ${PQC_ENABLED:-false}
+      PQC_GROUPS: ${PQC_GROUPS:-X25519MLKEM768}
+      PQC_ALLOW_CLASSICAL_FALLBACK: ${PQC_ALLOW_CLASSICAL_FALLBACK:-true}
+    networks: [labnet]
+    ports:
+      - "${PQC_TLS_PORT:-8444}:${PQC_TLS_PORT:-8444}"
+    healthcheck:
+      test: ["CMD", "sh", "-c", "echo | openssl s_client -connect 127.0.0.1:${PQC_TLS_PORT:-8444} -tls1_3 2>/dev/null | grep -q 'Verify return code'"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  capture-pqc:
+    build: { context: ./docker/capture }
+    container_name: capture-pqc
+    network_mode: "service:tls-pqc"
+    depends_on:
+      tls-pqc: { condition: service_healthy }
+    cap_add: [NET_RAW, NET_ADMIN]
+    environment:
+      CAPTURE_TARGET_NAME: pqc
+      CAPTURE_TARGET_PORT: ${PQC_TLS_PORT:-8444}
+      CAPTURE_ROTATE_SECONDS: ${CAPTURE_ROTATE_SECONDS:-300}
+      CAPTURE_SNAPLEN: ${CAPTURE_SNAPLEN:-262144}
+      CAPTURE_OUT_DIR: /captures
+    volumes:
+      - ./data/raw/pcap/pqc:/captures
+    healthcheck:
+      test: ["CMD", "sh", "-c", "find /captures -name '*.pcap' -newermt '-2 minutes' | grep -q ."]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  zeek:
+    build:
+      context: ./docker/zeek
+      args:
+        ZEEK_IMAGE: ${ZEEK_IMAGE:-zeek/zeek:6.2}
+    container_name: zeek-sensor
+    depends_on: [capture-classical, capture-pqc]
+    volumes:
+      - ./data/raw/pcap/classical:/captures/classical:ro
+      - ./data/raw/pcap/pqc:/captures/pqc:ro
+      - ./data/raw/zeek_logs:/zeek_logs
+      - ./configs/zeek/local.zeek:/usr/local/zeek/share/zeek/site/local.zeek:ro
+    environment:
+      ZEEK_PCAP_DIR: /captures
+      ZEEK_LOG_DIR: /zeek_logs
+    healthcheck:
+      test: ["CMD", "sh", "-c", "find /zeek_logs -mindepth 1 | grep -q ."]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  telemetry-collector:
+    build:
+      context: ./docker/telemetry
+      args:
+        TELEMETRY_IMAGE_PYTHON: ${TELEMETRY_IMAGE_PYTHON:-python:3.11-slim}
+    container_name: telemetry-collector
+    depends_on: [tls-classical, tls-pqc]
+    environment:
+      TELEMETRY_TARGETS: "tls-classical,tls-pqc"
+      TELEMETRY_INTERVAL_SECONDS: ${TELEMETRY_INTERVAL_SECONDS:-5}
+      TELEMETRY_OUT_DIR: /telemetry
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./data/raw/telemetry:/telemetry
+    healthcheck:
+      test: ["CMD", "sh", "-c", "test -f /telemetry/endpoint_telemetry.csv"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
